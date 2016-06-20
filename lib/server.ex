@@ -63,14 +63,14 @@ defmodule ChatServer do
 
     def handle_cast({:message_started, sender, destination}, {msgid, messages , clients}) do
     	
-    	Client.message_started(destination, sender)
+    	Client.receive_message_started(destination, sender)
     	{:noreply, {msgid, messages, clients}}
 
     end
 
     def handle_cast({:send_unicast, sender, destination, {localid, message}}, {msgid, messages , clients}) do
 
-    	Client.receive_unicast(destination, sender, {msgid + 1, message})
+    	Client.receive_unicast(destination, {msgid + 1, message})
     	{:noreply, {msgid + 1, Map.put(messages, msgid + 1, {sender, localid, message}), clients}}
 
 	end
@@ -81,7 +81,7 @@ defmodule ChatServer do
 			MapSet.difference(
 				MapSet.new(List.delete(Map.keys(clients), sender)), 
 				Map.get(clients, sender)), 
-			fn client -> Client.receive_broadcast(client, sender, message) end)
+			fn client -> Client.receive_broadcast(client, message) end)
 
 		{:noreply, {msgid, messages , clients}}
 
@@ -92,7 +92,7 @@ defmodule ChatServer do
 
 		{sender_id, localid, msg} = Map.get(messages, globalid)
 
-		Client.unicast_received(sender_id, localid)
+		Client.receive_unicast_received(sender_id, localid)
 
 		{:noreply, {msgid, messages , clients}}
 
@@ -102,7 +102,7 @@ defmodule ChatServer do
 
 		{sender_id, localid, msg} = Map.get(messages, globalid)
 
-		Client.unicast_read(sender_id, localid)
+		Client.receive_unicast_readed(sender_id, localid)
 
 		{:noreply, {msgid, messages , clients}}
 
