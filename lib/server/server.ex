@@ -3,7 +3,7 @@ defmodule ChatServer do
 	use GenServer
 
 	def start_link() do
-		GenServer.start_link(__MODULE__, [], [name: :the_server])
+		GenServer.start_link(__MODULE__, [], [name: :server])
 	end
 
 	def connect(server, sender) do
@@ -54,7 +54,7 @@ defmodule ChatServer do
 
     def handle_call({:silenced}, _from, {msgid, messages , clients}) do 
     	{:reply, 
-    		clients |> Enum.filter(fn {key, value} -> !Enum.empty?(value) end ),
+    		clients |> Enum.filter(fn {key, value} -> !Enum.empty?(value) end),
     		{msgid, messages , clients}}
     end 
 
@@ -63,13 +63,13 @@ defmodule ChatServer do
     end 
 
     def handle_call({:connect, sender}, _from, {msgid, messages , clients}) do
+   		
+   		Enum.each(Map.keys(clients), 
+    			fn(client) -> ChatClient.receive_new_peer(client, sender) end) 
 
-    	Task.async(
-    		fn -> Enum.each(
-    				Map.keys(clients),
-    				fn(client) -> ChatClient.receive_new_peer(client, sender) end) end)
+    	{:reply,{:ok, Map.keys(clients)}, 
+    		{msgid, messages, Map.put(clients, sender, MapSet.new)}}
 
-    	{:reply, {:ok, Map.keys(clients)}, {msgid, messages, Map.put(clients, sender, MapSet.new)}}
     end
 
     def handle_call({:silence, sender, to_be_silenced}, _from, {msgid, messages, clients}) do
@@ -89,11 +89,9 @@ defmodule ChatServer do
 
     end
 
-    def handle_cast({:send_unicast, sender, destination, {localid, message}}, {msgid, messages , clients}) do
-
+    def handle_cast({:send_unicast, sender, destination, {localid, message}},{msgid, messages , clients}) do
     	ChatClient.receive_unicast(destination, {msgid + 1, message})
     	{:noreply, {msgid + 1, Map.put(messages, msgid + 1, {sender, localid, message}), clients}}
-
 	end
 
 	def handle_cast({:send_broadcast, sender, message}, {msgid, messages , clients}) do
@@ -102,7 +100,7 @@ defmodule ChatServer do
 			MapSet.difference(
 				MapSet.new(List.delete(Map.keys(clients), sender)), 
 				Map.get(clients, sender)), 
-			fn client -> ChatClient.receive_broadcast(client, sender, message) end)
+			fn(client) -> ChatClient.receive_broadcast(client, sender, message) end)  
 
 		{:noreply, {msgid, messages , clients}}
 
@@ -110,23 +108,16 @@ defmodule ChatServer do
 
 
 	def handle_cast({:unicast_received, globalid}, {msgid, messages , clients}) do
-
 		{sender_id, localid, _} = Map.get(messages, globalid)
-
 		ChatClient.receive_unicast_received(sender_id, localid)
-
 		{:noreply, {msgid, messages , clients}}
-
 	end
 
 	def handle_cast({:unicast_read, globalid}, {msgid, messages, clients}) do
-
 		{sender_id, localid, _} = Map.get(messages, globalid)
 		ChatClient.receive_unicast_readed(sender_id, localid)
 		{:noreply, {msgid, messages , clients}}
-
 	end
-
 
 end
 

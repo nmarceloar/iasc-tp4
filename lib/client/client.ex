@@ -2,8 +2,8 @@ defmodule ChatClient do
 
 	use GenServer 
 
-	def start_link() do 
-		GenServer.start_link(__MODULE__,[], []) 
+	def connected_to(server) do 
+		GenServer.start_link(__MODULE__, server, []) 
 	end
 
    	def silence(client, to_be_silenced) do
@@ -60,15 +60,9 @@ defmodule ChatClient do
 
     ## CALLBACKS
 
-    def init([]) do
-
-        {:ok, hostname} = :inet.gethostname()
-        default_server = {:the_server, String.to_atom("server@" <> to_string(hostname))}
-        
-    	{:ok, peers} = ChatServer.connect(default_server, self)
-
-        {:ok, {default_server, peers, Map.new , 0}}
-
+    def init(server) do
+    	{:ok, peers} = ChatServer.connect(server, self)
+        {:ok, {server, peers, Map.new , 0}}
     end
 
     def handle_call({:silence, to_be_silenced}, _from, {server, peers, messages, localid}) do

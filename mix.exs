@@ -3,7 +3,7 @@ defmodule IascTp4.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :server,
+    [app: :server, 
      version: "0.0.1",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
@@ -12,10 +12,11 @@ defmodule IascTp4.Mixfile do
   end
 
   def application do
-    [applications: [:logger], mod: {Server, []}]
+    []
   end
 
   defp deps do
     []
   end
+  
 end
